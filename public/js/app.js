@@ -1,6 +1,7 @@
 // 화면 이벤트와 흐름 제어 — POST /api/plan (AI Agent) 결과를 스트리밍으로 받아 표시
 import { renderMap, loadNaverMaps } from './map.js';
 import { initPlaceSearch } from './places.js';
+import { authHeaders, getPassword, setPassword, fetchPasswordRequired } from './api.js';
 import {
   won, addDays, formatDate, esc,
   renderSummary, renderDayTabs, renderItinerary, renderBudget, renderSources,
@@ -12,6 +13,22 @@ const form = $('plan-form');
 
 // NAVER 지도 SDK 미리 로드 (실패해도 미리보기 지도로 대체)
 loadNaverMaps().catch(() => {});
+
+// 접속 비밀번호: 서버가 요구하면 입력칸 표시, 이 탭에서 입력한 값 복원
+fetchPasswordRequired().then((required) => {
+  if (!required) return;
+  $('pw-field').hidden = false;
+  $('app-password').value = getPassword();
+});
+$('app-password').addEventListener('input', (e) => setPassword(e.target.value));
+// 비밀번호 오류(401) 시 입력칸으로 안내
+function askPassword(message) {
+  $('pw-field').hidden = false;
+  $('pw-field').classList.add('is-error');
+  $('app-password').focus();
+  return message;
+}
+$('app-password').addEventListener('input', () => $('pw-field').classList.remove('is-error')); // 다시 입력하면 오류 표시 해제
 
 // Agent Trace 필터: 전체 / Tool만
 $('trace-filter').addEventListener('click', (e) => {
@@ -118,12 +135,13 @@ async function runAgent(input, onTrace) {
 
   const res = await fetch('/api/plan', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders($('app-password').value) },
     body: JSON.stringify(input),
     signal: controller.signal,
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error(askPassword(data.error || '접속 비밀번호를 확인해 주세요.'));
     throw new Error(data.error || `서버 오류 (HTTP ${res.status})`);
   }
 

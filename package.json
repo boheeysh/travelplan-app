@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "국내 여행 계획 AI Agent 웹앱",
   "type": "module",
-  "main": "server/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "test:search": "node scripts/test-search-places.js",
     "test:routes": "node scripts/test-get-routes.js",
     "test:budget": "node scripts/test-calculate-budget.js",
@@ -15,7 +15,7 @@
     "test:agent": "node scripts/test-agent.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "dotenv": "^18.0.10",

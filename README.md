@@ -10,7 +10,20 @@ cp .env.example .env   # 실제 키 입력
 npm run dev            # http://127.0.0.1:3000  (NAVER 지도는 localhost 대신 127.0.0.1 로 접속)
 ```
 
-## Agent 구조
+## Vercel 배포
+1. GitHub 저장소를 Vercel에서 Import (Framework: 자동 감지 Express, 진입점: 루트 `server.js`)
+2. **Environment Variables** 에 `.env.example`의 키를 모두 입력
+   - `APP_PASSWORD` **필수** — 없으면 일정 생성·장소 검색이 막힘 (배포 주소를 아는 누구나 OpenAI 비용을 쓰는 것 방지)
+   - `PORT`는 넣지 않아도 됨
+3. NCP 콘솔 > Maps Application > **Web 서비스 URL**에 배포 주소(예: `https://travelplan-app.vercel.app`) 추가
+4. OpenAI 대시보드에서 **월 사용 한도** 설정 권장
+
+참고
+- 화면 파일은 `public/`을 Vercel CDN이 제공 (`express.static`은 Vercel에서 무시됨)
+- 일정 생성은 보통 60~120초 → Hobby 플랜 함수 최대 실행 시간(300초) 안
+- 접속 비밀번호는 브라우저 탭에서만 기억(sessionStorage)하고, 요청 헤더 `x-app-password`로 전송
+
+
 ```
 사용자 조건 ─▶ LLM (Responses API + Tool 스키마)
                  │  function_call 요청
@@ -38,14 +51,17 @@ npm run dev            # http://127.0.0.1:3000  (NAVER 지도는 localhost 대�
 
 ## 구조
 ```
+server.js               Express 진입점 (로컬 listen / Vercel export default)
 server/
-  index.js              Express 진입점
   config.js             .env 로딩 (키는 여기서만 읽음)
+  auth.js               접속 비밀번호 (APP_PASSWORD)
   agent/
     runAgent.js         Agent Loop · Trace · 후처리 검증
     tools.js            Tool 스키마 + 실행기 + 가격/좌표 검증
     prompt.js           Agent 지시문
     planSchema.js       최종 일정 JSON 스키마 (Structured Outputs)
+    mealPrices.js       식당 메뉴판 단가 (web_search)
+    lodgingPrices.js    숙소 1박 요금 (web_search)
   services/
     naverSearch.js      search_places
     naverMaps.js        get_routes
@@ -70,3 +86,4 @@ npm run test:agent -- "강릉" 1 "바다 보이는 카페 위주"
 ## 보안
 - API 키는 `.env`에만 저장하고, `.env`는 `.gitignore`로 커밋에서 제외됩니다.
 - Secret 키는 서버에서만 사용하고, 브라우저에는 지도 SDK용 Client ID만 전달합니다.
+- 비용이 드는 API(`/api/plan`, `/api/places`)는 `APP_PASSWORD`로 보호합니다. 로컬에서 비워 두면 비밀번호 없이 사용합니다.

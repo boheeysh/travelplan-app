@@ -103,6 +103,13 @@
         </fieldset>
       </div>
 
+      <!-- 접속 비밀번호: 서버가 요구할 때만 보임 (배포 환경) -->
+      <div class="pw-field" id="pw-field" hidden>
+        <label for="app-password">🔒 접속 비밀번호</label>
+        <input id="app-password" type="password" autocomplete="current-password" placeholder="공유받은 비밀번호" />
+        <small>AI 일정 생성과 장소 검색에 필요해요. 이 탭을 닫으면 지워져요.</small>
+      </div>
+
       <div class="form-actions">
         <p class="hint">AI Agent가 실제 장소·경로를 확인해 일정을 만들어요. (30초~1분)</p>
         <button type="submit" class="btn-primary" id="submit-btn">

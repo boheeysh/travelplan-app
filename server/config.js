@@ -3,6 +3,8 @@ import 'dotenv/config';
 
 export const config = {
   port: Number(process.env.PORT) || 3000,
+  isVercel: Boolean(process.env.VERCEL),           // Vercel이 자동으로 설정
+  appPassword: process.env.APP_PASSWORD || '',     // 접속 비밀번호 (배포 시 필수)
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-5-mini',

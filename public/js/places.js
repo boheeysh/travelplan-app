@@ -1,6 +1,7 @@
 // [Level 2] 장소 검색 UI — /api/places 호출 결과를 그대로 표시
 // API가 제공하지 않는 정보(영업시간·평점·가격 등)는 표시하지 않습니다.
 import { esc } from './render.js';
+import { authHeaders } from './api.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -40,7 +41,7 @@ async function search() {
 
   try {
     const params = new URLSearchParams({ region, keyword, sort });
-    const res = await fetch(`/api/places?${params}`);
+    const res = await fetch(`/api/places?${params}`, { headers: authHeaders() });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '검색에 실패했어요.');
 
