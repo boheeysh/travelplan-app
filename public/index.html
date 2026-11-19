@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>여행 플래너 AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="badge">AI 여행 Agent · 베타</span>
+      <h1>어디로 떠나볼까요? <span class="wave">🚗</span></h1>
+      <p>조건만 알려 주시면 날짜별 일정, 동선, 예산까지 한 번에 짜 드릴게요.</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- ───────── 입력 폼 ───────── -->
+    <form id="plan-form" class="card form-card" novalidate>
+      <div class="form-grid">
+        <!-- 1. 지역 -->
+        <fieldset class="field span-2">
+          <legend><span class="step">1</span>여행 지역</legend>
+          <input id="region" name="region" type="text" placeholder="예: 부산, 제주, 강릉" value="부산" required />
+          <div class="chips chips-sm" id="region-suggest">
+            <button type="button" class="chip" data-region="부산">부산</button>
+            <button type="button" class="chip" data-region="제주">제주</button>
+            <button type="button" class="chip" data-region="강릉">강릉</button>
+            <button type="button" class="chip" data-region="경주">경주</button>
+            <button type="button" class="chip" data-region="여수">여수</button>
+            <button type="button" class="chip" data-region="전주">전주</button>
+            <button type="button" class="chip" data-region="강원 고성" title="강원도 고성군 (경남 고성은 '경남 고성'으로 입력)">고성</button>
+            <button type="button" class="chip" data-region="무주">무주</button>
+            <button type="button" class="chip" data-region="대전">대전</button>
+          </div>
+        </fieldset>
+
+        <!-- 2. 날짜 / 기간 -->
+        <fieldset class="field">
+          <legend><span class="step">2</span>출발일과 기간</legend>
+          <div class="row">
+            <input id="startDate" name="startDate" type="date" required />
+            <select id="nights" name="nights">
+              <option value="0">당일치기</option>
+              <option value="1">1박 2일</option>
+              <option value="2" selected>2박 3일</option>
+              <option value="3">3박 4일</option>
+            </select>
+          </div>
+          <p class="hint" id="date-hint"></p>
+        </fieldset>
+
+        <!-- 3. 인원 / 예산 -->
+        <fieldset class="field">
+          <legend><span class="step">3</span>인원과 총예산</legend>
+          <div class="row">
+            <div class="stepper">
+              <button type="button" data-step="-1" aria-label="인원 줄이기">−</button>
+              <input id="people" name="people" type="number" min="1" max="20" value="2" />
+              <span class="unit">명</span>
+              <button type="button" data-step="1" aria-label="인원 늘리기">+</button>
+            </div>
+            <div class="money">
+              <input id="budget" name="budget" type="text" inputmode="numeric" value="600,000" />
+              <span class="unit">원</span>
+            </div>
+          </div>
+          <p class="hint" id="budget-hint"></p>
+        </fieldset>
+
+        <!-- 4. 취향 -->
+        <fieldset class="field span-2">
+          <legend><span class="step">4</span>여행 취향 <small>여러 개 선택 가능</small></legend>
+          <div class="chips" id="prefs">
+            <button type="button" class="chip is-on" data-value="맛집">🍜 맛집</button>
+            <button type="button" class="chip is-on" data-value="관광">📸 관광</button>
+            <button type="button" class="chip" data-value="자연">🌿 자연</button>
+            <button type="button" class="chip" data-value="휴식">☕ 휴식</button>
+            <button type="button" class="chip" data-value="쇼핑">🛍️ 쇼핑</button>
+            <button type="button" class="chip" data-value="액티비티">🏄 액티비티</button>
+            <button type="button" class="chip" data-value="문화·역사">🏛️ 문화·역사</button>
+            <button type="button" class="chip" data-value="야경">🌃 야경</button>
+          </div>
+        </fieldset>
+
+        <!-- 5. 이동수단 -->
+        <fieldset class="field span-2">
+          <legend><span class="step">5</span>이동수단</legend>
+          <div class="segmented" id="transport">
+            <label><input type="radio" name="transport" value="자동차" checked /><span>🚗 자동차</span></label>
+            <label><input type="radio" name="transport" value="자동차+도보" /><span>🚗+🚶 자동차 + 도보</span></label>
+            <label><input type="radio" name="transport" value="대중교통" /><span>🚌 대중교통</span></label>
+          </div>
+        </fieldset>
+
+        <!-- 6. 추가 요청 -->
+        <fieldset class="field span-2">
+          <legend><span class="step">6</span>추가 요청 <small>선택</small></legend>
+          <textarea id="request" name="request" rows="3" placeholder="예: 바다가 보이는 숙소면 좋겠어요. 아침은 가볍게, 저녁은 해산물로!"></textarea>
+        </fieldset>
+      </div>
+
+      <div class="form-actions">
+        <p class="hint">AI Agent가 실제 장소·경로를 확인해 일정을 만들어요. (30초~1분)</p>
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span class="btn-label">✨ 여행 일정 만들기</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- ───────── 장소 검색 (NAVER 지역 검색) ───────── -->
+    <section class="card" id="place-search">
+      <div class="ps-head">
+        <h2>📍 실제 장소 찾아보기</h2>
+        <span class="source">NAVER 지역 검색</span>
+      </div>
+      <form id="place-form" class="ps-form">
+        <div class="ps-input">
+          <span class="ps-region" id="ps-region">부산</span>
+          <input id="ps-keyword" type="text" placeholder="키워드 (예: 맛집, 카페, 관광지)" value="맛집" />
+        </div>
+        <select id="ps-sort" aria-label="정렬">
+          <option value="random">정확도순</option>
+          <option value="comment">리뷰 많은 순</option>
+        </select>
+        <button type="submit" class="btn-secondary">검색</button>
+      </form>
+      <div class="chips chips-sm" id="ps-keywords">
+        <button type="button" class="chip" data-keyword="관광지">📸 관광지</button>
+        <button type="button" class="chip" data-keyword="맛집">🍜 맛집</button>
+        <button type="button" class="chip" data-keyword="카페">☕ 카페</button>
+        <button type="button" class="chip" data-keyword="숙소">🏨 숙소</button>
+        <button type="button" class="chip" data-keyword="시장">🛍️ 시장</button>
+        <button type="button" class="chip" data-keyword="해변">🌊 해변</button>
+      </div>
+      <div id="ps-results" class="ps-results"></div>
+    </section>
+
+    <!-- ───────── 결과 ───────── -->
+    <section id="results" class="results">
+      <div class="summary card" id="summary">
+        <p class="empty">조건을 입력하고 <strong>여행 일정 만들기</strong>를 눌러 보세요.</p>
+      </div>
+
+      <div class="day-tabs" id="day-tabs" role="tablist"></div>
+
+      <div class="results-grid">
+        <article class="card panel" id="itinerary-panel">
+          <h2>🗓️ 날짜별 일정</h2>
+          <div id="itinerary"><p class="empty">아직 일정이 없어요.</p></div>
+        </article>
+
+        <!-- 지도는 일정 옆 칸 안에서만 따라 내려옴 (아래 Agent Trace와 겹치지 않도록) -->
+        <div class="map-cell">
+          <article class="card panel map-panel">
+            <h2>🗺️ 지도</h2>
+            <div id="map" class="map"><p class="empty">일정이 만들어지면 동선이 표시돼요.</p></div>
+          </article>
+        </div>
+
+        <article class="card panel">
+          <h2>💰 예상 비용과 잔여 예산</h2>
+          <div id="budget-view"><p class="empty">예상 비용과 잔여 예산이 여기에 표시돼요.</p></div>
+        </article>
+
+        <article class="card panel">
+          <div class="panel-head">
+            <h2>🤖 Agent Trace</h2>
+            <div class="seg-sm" id="trace-filter" role="group" aria-label="Trace 필터">
+              <button type="button" class="is-on" data-filter="all">전체</button>
+              <button type="button" data-filter="tools">Tool만</button>
+            </div>
+          </div>
+          <div class="trace-summary" id="trace-summary"><span class="muted">아직 호출된 Tool이 없어요.</span></div>
+          <ol id="agent-log" class="log"><li class="empty">Agent가 대기 중이에요.</li></ol>
+        </article>
+
+        <article class="card panel span-full">
+          <h2>📚 출처</h2>
+          <div id="sources-view"><p class="empty">일정에 사용된 검색 결과의 출처가 여기에 표시돼요.</p></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>국내 여행 플래너 AI · 장소 NAVER 지역 검색 · 경로 NAVER Directions · AI OpenAI</footer>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
